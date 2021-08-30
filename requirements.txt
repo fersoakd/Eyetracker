@@ -1,0 +1,7 @@
+Packages to Install
+numpy		       
+opencv-python	       
+dlib                   * conda install -c conda-forge dlib
+imutils		       * conda install -c conda-forge imutils
+pyserial
+
