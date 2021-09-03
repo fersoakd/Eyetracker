@@ -1,2 +1,2 @@
 # eyetracker
-Eyetracking using DLib &amp; OpenCV (Python)
+Eyetracking using DLib & OpenCV (Python)
