@@ -16,7 +16,6 @@ predictor = dlib.shape_predictor("shapepredictor_68_facelandmarks.dat")
 
 #Cam to test
 cap = cv2.VideoCapture(0)
-#cap = cv2.VideoCapture('./dt/Maud.mp4')
 kernel = np.ones((5,5),np.uint8)
 ym=5
 xm=5
@@ -27,10 +26,16 @@ port = serial.Serial("COM8", baudrate=9600)              #Arduino Windows
 #port = serial.Serial("/dev/ttyTHS1", baudrate=9600)      #Jetson                                    
 text = ""
 
-#Threshold calibration 
+#Calibration 
+#Threshold
 tcr=[0,0]
-rtc=10
+tcl=[0,0]
+rtc=0
+ltc=0
 dr=0
+dl=0
+#Filters
+fv=25
 
 #Right & Left eye center cords
 rcx=0
@@ -62,7 +67,7 @@ while True:
         ret, img = cap.read()
 
         # Resize the image for video files.
-        #img = imutils.resize(img, width=580)
+        img = imutils.resize(img, width=580)
 
         # Convert to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -92,7 +97,8 @@ while True:
             #Right EYE
             re=extract_roi(img,shape,ri,rj)
             grayr = cv2.cvtColor(re,cv2.COLOR_BGR2GRAY)
-            mr = cv2.medianBlur(grayr,5)
+            mr = cv2.medianBlur(gr,fv)
+            br = cv2.GaussianBlur(mr,(fv,fv),0)
             eror = cv2.erode(mr,kernel,cv2.BORDER_REFLECT)
             retr,threshr = cv2.threshold(eror,rtc,255,cv2.THRESH_BINARY_INV)
             contoursr, _ = cv2.findContours(threshr,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)

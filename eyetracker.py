@@ -14,20 +14,23 @@ from imutils import face_utils
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('./shapepredictor_68_facelandmarks.dat')
 
-#Video or Cam to test
+#Video or Cam for test
 cap = cv2.VideoCapture(0)
 #cap = cv2.VideoCapture('./dt/roc.mp4')
 kernel = np.ones((5,5),np.uint8)
 ym=5
 xm=5
 
-#Threshold calibration 
+#Calibration 
+#Threshold
 tcr=[0,0]
 tcl=[0,0]
-rtc=10
-ltc=10
+rtc=0
+ltc=0
 dr=0
 dl=0
+#Filters
+fv=25
 
 #Right & Left eye center cords
 rcx=0
@@ -36,17 +39,14 @@ lcx=0
 lcy=0
 
 #Cx serial Port 
-#port = serial.Serial("COM8", baudrate=9600)              #Arduino Windows 
-#port = serial.Serial("/dev/ttyACM0", baudrate=9600)      #Arduino Linux     
-#port = serial.Serial("/dev/ttyTHS1", baudrate=9600)      #Jetson                                  
+#port = serial.Serial("COM8", baudrate=9600)              #Arduino BT Windows 
+#port = serial.Serial("/dev/ttyACM0", baudrate=9600)      #Arduino BT Linux     
+#port = serial.Serial("/dev/ttyTHS1", baudrate=9600)      #BT Jetson                                  
 #text = ""
 #port.write(b"D\n")
 
-#input_dir = './samples/'
-#out_dir = './result/'
-
 def extract_roi(img, shape, i, j):
-    # extract the ROI of the face region as a separate image
+    # Extract the ROI of the face region as a separate image
     (x, y, w, h) = cv2.boundingRect(np.array([shape[i:j]]))
     roi = img[y-ym:y+h+ym,x-xm:x+w+xm]
     roi = imutils.resize(roi, width=250, inter=cv2.INTER_CUBIC)
@@ -81,17 +81,17 @@ while True:
             w=extract_roi(img,shape,ri,rj)
             rows, cols, _ = w.shape
             #print(w.shape)
-            lbx= int ((cols/9)*(3.75))       #Left bound
-            rbx= int ((cols/9)*(5.25))       #Right bound        
+            lbx= int ((cols/9)*(3.5))       #Left bound
+            rbx= int ((cols/9)*(5.5))       #Right bound        
             uby= int ((rows/9)*(2))          #Up bound
-            #dby= int ((rows/9)*(11/2))      #Down bound
+            #dby= int ((rows/9)*(8))        #Down bound
 
             #Right EYE
             re=extract_roi(img,shape,ri,rj)
             gr = cv2.cvtColor(re,cv2.COLOR_BGR2GRAY)
-            mr = cv2.medianBlur(gr,15)
-            br = cv2.GaussianBlur(mr,(15,15),0)
-            #er = cv2.erode(mr,kernel,cv2.BORDER_REFLECT)
+            mr = cv2.medianBlur(gr,fv)
+            br = cv2.GaussianBlur(mr,(fv,fv),0)
+            #er = cv2.erode(br,kernel,cv2.BORDER_REFLECT)
             retr,threshr = cv2.threshold(br,rtc,255,cv2.THRESH_BINARY_INV)
             contoursr, _ = cv2.findContours(threshr,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
             #contours, _ = cv2.findContours(threshr, cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
@@ -110,7 +110,7 @@ while True:
                     rtc=tcr[1]
                     (x, y, w, h) = cv2.boundingRect(cnt)
                     #cv2.circle(le,(int (colsl/2),int(rowsl/2)),5,(155,0,150),-1)    # center
-                    cv2.circle(re,(x+int(w/2),y+int(h/2)),int (h/3),(5,0,250),2)    # cv2 circles parameters (img,center(x,y),ratio,color,thickness)
+                    cv2.circle(re,(x+int(w/2),y+int(h/2)),int (h/3),(5,0,250),-1)    # cv2 circles parameters (img,center(x,y),ratio,color,thickness)
                     #print('right eye',x + int(w/2),y+int(h/2))
                     rcx=(x+(w/2))
                     rcy=(y+(h/2))
@@ -122,14 +122,14 @@ while True:
                     break
             
             else:
-                rtc=rtc+5
+                rtc=rtc+2
 
             #Left EYE
             le=extract_roi(img,shape,li,lj)
             gl = cv2.cvtColor(le,cv2.COLOR_BGR2GRAY)
-            ml = cv2.medianBlur(gl,15)
-            bl = cv2.GaussianBlur(ml,(15,15),0)
-            #el = cv2.erode(ml,kernel,cv2.BORDER_REFLECT)
+            ml = cv2.medianBlur(gl,fv)
+            bl = cv2.GaussianBlur(ml,(fv,fv),0)
+            #el = cv2.erode(bl,kernel,cv2.BORDER_REFLECT)
             retl,threshl = cv2.threshold(bl,ltc,255,cv2.THRESH_BINARY_INV)
             contoursl, _ = cv2.findContours(threshl,cv2.RETR_LIST,cv2.CHAIN_APPROX_SIMPLE)
             contoursl = sorted(contoursl,key=lambda x: cv2.contourArea(x),reverse=True)
@@ -146,7 +146,7 @@ while True:
                 for cnt in contoursl:
                     ltc=tcl[1]
                     (x, y, w, h) = cv2.boundingRect(cnt)
-                    cv2.circle(le,(x+int(w/2),y+int(h/2)),int (h/3),(5,0,250),2)  
+                    cv2.circle(le,(x+int(w/2),y+int(h/2)),int (h/3),(5,0,250),-1)  
                     lcx=(x+(w/2))
                     lcy=(y+(h/2))
                     cv2.line(le,(x+int(w/2),0),(x+int(w/2),rows),(250,0,10),1)
@@ -157,7 +157,7 @@ while True:
                     break
 
             else:
-                ltc=ltc+5
+                ltc=ltc+2
 
             #Right
             if  rcx < lbx or lcx < lbx:
@@ -194,18 +194,18 @@ while True:
 
     except: 
         print("Error")
-        rtc=10
-        ltc=10
+        rtc=0
+        ltc=0
         dl=0
         dr=0
     
     if cv2.waitKey(1) & 0xFF == ord('r'):
-        rtc=10
-        ltc=10
+        rtc=0
+        ltc=0
         dl=0
         dr=0
         
-    if cv2.waitKey(1) & 0xFF == ord('q') :      # for 'esc' key to exit cv2.waitKey(1) & 0xFF == 27
+    if cv2.waitKey(1) & 0xFF == 27 :   # 27 = 'esc' key to exit
         # When everything done, release the capture
         cap.release()
         cv2.destroyAllWindows()
